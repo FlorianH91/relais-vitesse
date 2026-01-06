@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relais-Vtesse</title>
+    <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #e0e5ec;
+            --shadow: 9px 9px 16px rgb(163,177,198,0.6), -9px -9px 16px rgba(255,255,255, 0.5);
+            --inner-shadow: inset 6px 6px 12px #c1c9d7, inset -6px -6px 12px #ffffff;
+            --track-color: #d35400;
+            --accent-blue: #4facfe;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            margin: 0;
+            color: #444;
+        }
+
+        /* ZONE SAISIE NOMS AVEC PERMUTATION */
+        .setup-relay {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            width: 95%;
+            max-width: 550px;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            border: none;
+            background: var(--bg-color);
+            box-shadow: var(--inner-shadow);
+            font-size: 0.85rem;
+            outline: none;
+            text-align: center;
+        }
+
+        #swapBtn {
+            background-color: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            transition: transform 0.2s;
+        }
+
+        #swapBtn:active { transform: rotate(180deg); }
+
+        #chrono {
+            font-family: 'Courier New', monospace;
+            font-size: 3rem;
+            font-weight: bold;
+            padding: 10px 20px;
+            background: var(--bg-color);
+            box-shadow: var(--shadow);
+            border-radius: 15px;
+            margin-bottom: 10px;
+        }
+
+        .track-container {
+            width: 95%;
+            max-width: 600px;
+            margin: 45px 0 65px 0;
+            position: relative;
+        }
+
+        .track {
+            height: 50px;
+            background: var(--track-color);
+            border: 3px solid #fff;
+            border-radius: 8px;
+            display: flex;
+            position: relative;
+        }
+
+        .track-zone {
+            flex: 1;
+            border-right: 2px solid rgba(255,255,255,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: rgba(255,255,255,0.5);
+            font-weight: bold;
+        }
+        .track-zone:last-child { border-right: none; }
+
+        .plot {
+            position: absolute;
+            bottom: -20px;
+            width: 0; height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 18px solid black;
+            transform: translateX(-50%);
+        }
+        .plot-v { border-bottom-color: #2ecc71; left: 0%; }
+        .plot-j { border-bottom-color: #f1c40f; left: 33.33%; }
+        .plot-b { border-bottom-color: #3498db; left: 66.66%; }
+        .plot-r { border-bottom-color: #e74c3c; left: 100%; }
+
+        .runner {
+            width: 24px;
+            height: 24px;
+            background: #fff;
+            border: 3px solid #333;
+            border-radius: 50%;
+            position: absolute;
+            top: 10px;
+            left: 0%;
+            transform: translateX(-50%);
+            transition: left 0.4s ease-out;
+            z-index: 10;
+        }
+
+        .res-label { position: absolute; top: -40px; width: 33%; text-align: center; font-size: 0.75rem; }
+
+        #mainActionBtn {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-color);
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #mainActionBtn:active { box-shadow: var(--inner-shadow); transform: scale(0.95); }
+
+        .btn-text { font-weight: bold; color: var(--accent-blue); font-size: 0.9rem; }
+
+        .controls { margin: 15px 0; display: flex; gap: 10px; }
+        
+        button.secondary, select, .btn-pdf {
+            padding: 10px 15px;
+            border-radius: 10px;
+            border: none;
+            background: var(--bg-color);
+            box-shadow: var(--shadow);
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-weight: bold;
+            color: #666;
+        }
+
+        .btn-pdf { background-color: var(--accent-blue); color: white; margin-bottom: 10px; }
+
+        #resultsArea {
+            margin-top: 10px;
+            padding: 15px;
+            border-radius: 20px;
+            background: var(--bg-color);
+            box-shadow: var(--inner-shadow);
+            display: none;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .history-container {
+            width: 100%;
+            max-width: 650px;
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--bg-color);
+            box-shadow: var(--shadow);
+            border-radius: 20px;
+            box-sizing: border-box;
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        th { border-bottom: 2px solid #ccc; padding: 8px; color: #666; }
+        td { padding: 8px; text-align: center; border-bottom: 1px solid #ddd; }
+
+        .badge {
+            padding: 3px 6px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.65rem;
+        }
+    </style>
+</head>
+<body>
+
+    <h2 style="font-weight: 300; margin: 10px 0;">Relais-Vitesse - Indicateur d'efficacité</h2>
+
+    <div class="setup-relay">
+        <input type="text" id="runner1" placeholder="Donneur (C1)">
+        <button id="swapBtn" title="Inverser les coureurs">⇄</button>
+        <input type="text" id="runner2" placeholder="Receveur (C2)">
+    </div>
+    
+    <div id="chrono">00.00</div>
+
+    <div class="track-container">
+        <div id="info1" class="res-label" style="left:0%;"></div>
+        <div id="info2" class="res-label" style="left:33.33%;"></div>
+        <div id="info3" class="res-label" style="left:66.66%;"></div>
+
+        <div class="track">
+            <div class="runner" id="runner"></div>
+            <div class="track-zone">Z1</div>
+            <div class="track-zone">ZT</div>
+            <div class="track-zone">Z2</div>
+            <div class="plot plot-v"></div>
+            <div class="plot plot-j"></div>
+            <div class="plot plot-b"></div>
+            <div class="plot plot-r"></div>
+        </div>
+    </div>
+
+    <button id="mainActionBtn">
+        <span style="font-size: 1.2rem;">⏱️</span>
+        <span class="btn-text" id="btnLabel">DÉPART</span>
+    </button>
+
+    <div class="controls">
+        <button class="secondary" id="resetRunBtn">Nouvel Essai</button>
+        <select id="distance">
+            <option value="10">Zones 10m</option>
+            <option value="20" selected>Zones 20m</option>
+            <option value="30">Zones 30m</option>
+        </select>
+    </div>
+
+    <div id="resultsArea">
+        <canvas id="gaugeCanvas" width="200" height="110"></canvas>
+        <div id="scoreLabel" style="font-weight: bold;">Efficacité : --%</div>
+        <div id="evalLabel" style="font-weight: bold; margin-top: 5px;"></div>
+    </div>
+
+    <div class="history-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0; font-weight: 400;">Historique</h3>
+            <button class="btn-pdf" onclick="exportToPDF()">Exporter PDF</button>
+        </div>
+        <table id="historyTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Donneur</th>
+                    <th>Receveur</th>
+                    <th>V. ZT</th>
+                    <th>Eff.</th>
+                    <th>Maîtrise</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+<script>
+    let startTime = 0, elapsed = 0, timer, clicks = 0, times = [], trialCount = 0; 
+    
+    const btn = document.getElementById('mainActionBtn');
+    const btnLabel = document.getElementById('btnLabel');
+    const runner = document.getElementById('runner');
+    const chronoDisp = document.getElementById('chrono');
+    const historyBody = document.querySelector('#historyTable tbody');
+
+    // FONCTION PERMUTER LES COUREURS
+    document.getElementById('swapBtn').addEventListener('click', () => {
+        const r1 = document.getElementById('runner1');
+        const r2 = document.getElementById('runner2');
+        const temp = r1.value;
+        r1.value = r2.value;
+        r2.value = temp;
+    });
+
+    btn.addEventListener('click', () => {
+        clicks++;
+        if (clicks === 1) {
+            startTime = Date.now();
+            timer = setInterval(() => {
+                elapsed = Date.now() - startTime;
+                const d = new Date(elapsed);
+                chronoDisp.textContent = d.getUTCSeconds().toString().padStart(2, '0') + "." + 
+                                        Math.floor(d.getUTCMilliseconds()/10).toString().padStart(2, '0');
+            }, 10);
+        } else if (clicks <= 4) {
+            times.push(elapsed);
+            runner.style.left = [0, 33.33, 66.66, 100][clicks-1] + "%";
+            calcZone(clicks - 2);
+        }
+
+        if (clicks === 4) {
+            clearInterval(timer);
+            showFinal();
+        }
+        if(clicks < 5) btnLabel.textContent = ["DÉPART", "PL. JAUNE", "PL. BLEU", "PL. ROUGE", "FINI"][clicks];
+    });
+
+    function calcZone(idx) {
+        const d = parseInt(document.getElementById('distance').value);
+        const cur = times[idx] / 1000;
+        const prev = idx === 0 ? 0 : times[idx-1] / 1000;
+        const speed = (d / (cur - prev)) * 3.6;
+        document.getElementById(`info${idx+1}`).innerHTML = `<b>${speed.toFixed(1)} km/h</b><br><small>${cur.toFixed(2)}s</small>`;
+    }
+
+    function showFinal() {
+        trialCount++;
+        const d = parseInt(document.getElementById('distance').value);
+        const v1 = (d / (times[0]/1000)) * 3.6;
+        const vZT = (d / ((times[1]-times[0])/1000)) * 3.6;
+        const v2 = (d / ((times[2]-times[1])/1000)) * 3.6;
+        const eff = Math.round((vZT / ((v1+v2)/2)) * 100);
+        
+        const r1 = document.getElementById('runner1').value || "---";
+        const r2 = document.getElementById('runner2').value || "---";
+
+        document.getElementById('resultsArea').style.display = 'block';
+        
+        const evalLab = document.getElementById('evalLabel');
+        let color = "", text = "";
+        if (eff < 70) { text = "Insuffisante"; color = "#e74c3c"; }
+        else if (eff < 90) { text = "Fragile"; color = "#f1c40f"; }
+        else if (eff <= 110) { text = "Satisfaisante"; color = "#2ecc71"; }
+        else { text = "Très Satisfaisante"; color = "#1e8449"; }
+        
+        evalLab.textContent = text;
+        evalLab.style.color = color;
+        document.getElementById('scoreLabel').textContent = `Efficacité ZT : ${eff}%`;
+
+        initGauge(eff);
+        addToHistory(trialCount, r1, r2, vZT.toFixed(1), eff, text, color);
+    }
+
+    function initGauge(val) {
+        const g = new Gauge(document.getElementById('gaugeCanvas')).setOptions({
+            angle: 0.15, lineWidth: 0.4, radiusScale: 1,
+            pointer: { length: 0.6, strokeWidth: 0.04, color: '#000000' },
+            staticZones: [
+                {strokeStyle: "#e74c3c", min: 0, max: 70},
+                {strokeStyle: "#f1c40f", min: 70, max: 90},
+                {strokeStyle: "#2ecc71", min: 90, max: 110},
+                {strokeStyle: "#1e8449", min: 110, max: 150}
+            ],
+            strokeColor: "#E0E0E0"
+        });
+        g.maxValue = 150; g.set(val);
+    }
+
+    function addToHistory(num, r1, r2, vzt, eff, mastery, color) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${num}</td>
+            <td>${r1}</td>
+            <td>${r2}</td>
+            <td>${vzt} km/h</td>
+            <td>${eff}%</td>
+            <td><span class="badge" style="background:${color}">${mastery}</span></td>
+        `;
+        historyBody.prepend(row);
+    }
+
+    async function exportToPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const date = new Date().toLocaleDateString('fr-FR');
+        doc.setFontSize(18);
+        doc.text("Rapport de Performance Relais", 14, 20);
+        doc.setFontSize(11);
+        doc.text(`Date : ${date} | Relay Master Pro`, 14, 28);
+        doc.autoTable({ html: '#historyTable', startY: 35, headStyles: { fillColor: [79, 172, 254] }, theme: 'grid' });
+        doc.save(`relais_master_${date.replace(/\//g, '-')}.pdf`);
+    }
+
+    // NOUVEL ESSAI : NE SUPPRIME PLUS LES NOMS
+    document.getElementById('resetRunBtn').addEventListener('click', () => {
+        clicks = 0; times = []; elapsed = 0;
+        chronoDisp.textContent = "00.00";
+        btnLabel.textContent = "DÉPART";
+        runner.style.left = "0%";
+        document.getElementById('resultsArea').style.display = 'none';
+        document.querySelectorAll('.res-label').forEach(el => el.innerHTML = '');
+        // Les lignes pour vider les noms ont été supprimées ici pour garder les coureurs
+    });
+</script>
+</body>
+</html>
