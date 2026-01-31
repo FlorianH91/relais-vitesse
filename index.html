@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relais-Vtesse</title>
+    <title>Relais-Vitesse Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -15,6 +15,7 @@
             --inner-shadow: inset 6px 6px 12px #c1c9d7, inset -6px -6px 12px #ffffff;
             --track-color: #d35400;
             --accent-blue: #4facfe;
+            --accent-green: #27ae60;
         }
 
         body {
@@ -28,19 +29,27 @@
             color: #444;
         }
 
-        /* ZONE SAISIE NOMS AVEC PERMUTATION */
-        .setup-relay {
+        .setup-relay, .setup-distances {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             width: 95%;
             max-width: 550px;
         }
 
-        input {
+        .dist-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             flex: 1;
-            padding: 12px;
+        }
+
+        .dist-box label { font-size: 0.7rem; margin-bottom: 4px; font-weight: bold; }
+
+        input {
+            width: 100%;
+            padding: 10px;
             border-radius: 12px;
             border: none;
             background: var(--bg-color);
@@ -48,6 +57,7 @@
             font-size: 0.85rem;
             outline: none;
             text-align: center;
+            box-sizing: border-box;
         }
 
         #swapBtn {
@@ -63,10 +73,7 @@
             justify-content: center;
             align-items: center;
             font-size: 1.2rem;
-            transition: transform 0.2s;
         }
-
-        #swapBtn:active { transform: rotate(180deg); }
 
         #chrono {
             font-family: 'Courier New', monospace;
@@ -76,13 +83,13 @@
             background: var(--bg-color);
             box-shadow: var(--shadow);
             border-radius: 15px;
-            margin-bottom: 10px;
+            margin: 10px 0;
         }
 
         .track-container {
             width: 95%;
             max-width: 600px;
-            margin: 45px 0 65px 0;
+            margin: 45px 0 60px 0;
             position: relative;
         }
 
@@ -99,11 +106,14 @@
             flex: 1;
             border-right: 2px solid rgba(255,255,255,0.8);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            color: rgba(255,255,255,0.5);
+            color: rgba(255,255,255,0.8);
             font-weight: bold;
+            font-size: 0.8rem;
         }
+        .track-zone span { font-size: 0.6rem; color: #fff; }
         .track-zone:last-child { border-right: none; }
 
         .plot {
@@ -130,15 +140,15 @@
             top: 10px;
             left: 0%;
             transform: translateX(-50%);
-            transition: left 0.4s ease-out;
+            transition: left 0.3s ease-out;
             z-index: 10;
         }
 
-        .res-label { position: absolute; top: -40px; width: 33%; text-align: center; font-size: 0.75rem; }
+        .res-label { position: absolute; top: -45px; width: 33.33%; text-align: center; font-size: 0.75rem; line-height: 1.2; font-weight: bold; }
 
         #mainActionBtn {
-            width: 110px;
-            height: 110px;
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
             border: none;
             background: var(--bg-color);
@@ -149,28 +159,24 @@
             justify-content: center;
             align-items: center;
             outline: none;
-            -webkit-tap-highlight-color: transparent;
+            user-select: none;
         }
 
-        #mainActionBtn:active { box-shadow: var(--inner-shadow); transform: scale(0.95); }
+        #mainActionBtn:active { box-shadow: var(--inner-shadow); transform: scale(0.98); }
+        .btn-text { font-weight: bold; color: var(--accent-blue); font-size: 0.8rem; }
 
-        .btn-text { font-weight: bold; color: var(--accent-blue); font-size: 0.9rem; }
-
-        .controls { margin: 15px 0; display: flex; gap: 10px; }
+        .controls { margin: 15px 0; }
         
-        button.secondary, select, .btn-pdf {
-            padding: 10px 15px;
+        button.secondary {
+            padding: 10px 20px;
             border-radius: 10px;
             border: none;
             background: var(--bg-color);
             box-shadow: var(--shadow);
-            font-size: 0.8rem;
             cursor: pointer;
             font-weight: bold;
             color: #666;
         }
-
-        .btn-pdf { background-color: var(--accent-blue); color: white; margin-bottom: 10px; }
 
         #resultsArea {
             margin-top: 10px;
@@ -195,7 +201,7 @@
             box-sizing: border-box;
         }
 
-        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
         th { border-bottom: 2px solid #ccc; padding: 8px; color: #666; }
         td { padding: 8px; text-align: center; border-bottom: 1px solid #ddd; }
 
@@ -204,18 +210,46 @@
             border-radius: 8px;
             color: white;
             font-weight: bold;
-            font-size: 0.65rem;
+            font-size: 0.6rem;
         }
+
+        .export-btns { display: flex; gap: 8px; }
+        .btn-exp { 
+            border: none; 
+            padding: 6px 12px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 0.7rem; 
+            font-weight: bold; 
+            color: white;
+            transition: opacity 0.2s;
+        }
+        .btn-exp:hover { opacity: 0.8; }
     </style>
 </head>
 <body>
 
-    <h2 style="font-weight: 300; margin: 10px 0;">Relais-Vitesse - Indicateur d'efficacité</h2>
+    <h2 style="font-weight: 300; margin: 10px 0; text-align: center;">Relais-Vitesse</h2>
 
     <div class="setup-relay">
         <input type="text" id="runner1" placeholder="Donneur (C1)">
         <button id="swapBtn" title="Inverser les coureurs">⇄</button>
         <input type="text" id="runner2" placeholder="Receveur (C2)">
+    </div>
+
+    <div class="setup-distances">
+        <div class="dist-box">
+            <label>Dist. Z1 (m)</label>
+            <input type="number" id="distZ1" value="20">
+        </div>
+        <div class="dist-box">
+            <label>Dist. ZT (m)</label>
+            <input type="number" id="distZT" value="20">
+        </div>
+        <div class="dist-box">
+            <label>Dist. Z2 (m)</label>
+            <input type="number" id="distZ2" value="20">
+        </div>
     </div>
     
     <div id="chrono">00.00</div>
@@ -227,9 +261,9 @@
 
         <div class="track">
             <div class="runner" id="runner"></div>
-            <div class="track-zone">Z1</div>
-            <div class="track-zone">ZT</div>
-            <div class="track-zone">Z2</div>
+            <div class="track-zone">Z1 <span id="lblZ1">(20m)</span></div>
+            <div class="track-zone">ZT <span id="lblZT">(20m)</span></div>
+            <div class="track-zone">Z2 <span id="lblZ2">(20m)</span></div>
             <div class="plot plot-v"></div>
             <div class="plot plot-j"></div>
             <div class="plot plot-b"></div>
@@ -244,11 +278,6 @@
 
     <div class="controls">
         <button class="secondary" id="resetRunBtn">Nouvel Essai</button>
-        <select id="distance">
-            <option value="10">Zones 10m</option>
-            <option value="20" selected>Zones 20m</option>
-            <option value="30">Zones 30m</option>
-        </select>
     </div>
 
     <div id="resultsArea">
@@ -260,7 +289,10 @@
     <div class="history-container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <h3 style="margin: 0; font-weight: 400;">Historique</h3>
-            <button class="btn-pdf" onclick="exportToPDF()">Exporter PDF</button>
+            <div class="export-btns">
+                <button class="btn-exp" style="background: var(--accent-blue);" onclick="exportToPDF()">PDF</button>
+                <button class="btn-exp" style="background: var(--accent-green);" onclick="exportToCSV()">Excel (CSV)</button>
+            </div>
         </div>
         <table id="historyTable">
             <thead>
@@ -286,15 +318,21 @@
     const chronoDisp = document.getElementById('chrono');
     const historyBody = document.querySelector('#historyTable tbody');
 
-    // FONCTION PERMUTER LES COUREURS
-    document.getElementById('swapBtn').addEventListener('click', () => {
-        const r1 = document.getElementById('runner1');
-        const r2 = document.getElementById('runner2');
-        const temp = r1.value;
-        r1.value = r2.value;
-        r2.value = temp;
+    // Mise à jour visuelle dynamique des distances sur la piste
+    ['distZ1', 'distZT', 'distZ2'].forEach(id => {
+        document.getElementById(id).addEventListener('input', (e) => {
+            const labelId = 'lbl' + id.slice(4);
+            document.getElementById(labelId).textContent = `(${e.target.value}m)`;
+        });
     });
 
+    // Inversion des coureurs
+    document.getElementById('swapBtn').addEventListener('click', () => {
+        const r1 = document.getElementById('runner1'), r2 = document.getElementById('runner2');
+        [r1.value, r2.value] = [r2.value, r1.value];
+    });
+
+    // Gestion des clics chrono
     btn.addEventListener('click', () => {
         clicks++;
         if (clicks === 1) {
@@ -308,34 +346,45 @@
         } else if (clicks <= 4) {
             times.push(elapsed);
             runner.style.left = [0, 33.33, 66.66, 100][clicks-1] + "%";
-            calcZone(clicks - 2);
+            calcZoneSpeed(clicks - 2);
         }
 
         if (clicks === 4) {
             clearInterval(timer);
             showFinal();
         }
-        if(clicks < 5) btnLabel.textContent = ["DÉPART", "PL. JAUNE", "PL. BLEU", "PL. ROUGE", "FINI"][clicks];
+        if(clicks < 5) btnLabel.textContent = ["DÉPART", "JAUNE", "BLEU", "ROUGE", "FINI"][clicks];
     });
 
-    function calcZone(idx) {
-        const d = parseInt(document.getElementById('distance').value);
-        const cur = times[idx] / 1000;
-        const prev = idx === 0 ? 0 : times[idx-1] / 1000;
-        const speed = (d / (cur - prev)) * 3.6;
-        document.getElementById(`info${idx+1}`).innerHTML = `<b>${speed.toFixed(1)} km/h</b><br><small>${cur.toFixed(2)}s</small>`;
+    function calcZoneSpeed(idx) {
+        const distances = [
+            parseFloat(document.getElementById('distZ1').value),
+            parseFloat(document.getElementById('distZT').value),
+            parseFloat(document.getElementById('distZ2').value)
+        ];
+        
+        const curTime = times[idx] / 1000;
+        const prevTime = idx === 0 ? 0 : times[idx-1] / 1000;
+        const timeInZone = curTime - prevTime;
+        
+        const speed = (distances[idx] / timeInZone) * 3.6;
+        document.getElementById(`info${idx+1}`).innerHTML = `${speed.toFixed(1)} km/h<br><small>${timeInZone.toFixed(2)}s</small>`;
     }
 
     function showFinal() {
         trialCount++;
-        const d = parseInt(document.getElementById('distance').value);
-        const v1 = (d / (times[0]/1000)) * 3.6;
-        const vZT = (d / ((times[1]-times[0])/1000)) * 3.6;
-        const v2 = (d / ((times[2]-times[1])/1000)) * 3.6;
+        const d1 = parseFloat(document.getElementById('distZ1').value);
+        const dT = parseFloat(document.getElementById('distZT').value);
+        const d2 = parseFloat(document.getElementById('distZ2').value);
+
+        const v1 = (d1 / (times[0]/1000)) * 3.6;
+        const vZT = (dT / ((times[1]-times[0])/1000)) * 3.6;
+        const v2 = (d2 / ((times[2]-times[1])/1000)) * 3.6;
+        
         const eff = Math.round((vZT / ((v1+v2)/2)) * 100);
         
-        const r1 = document.getElementById('runner1').value || "---";
-        const r2 = document.getElementById('runner2').value || "---";
+        const r1 = document.getElementById('runner1').value || "Non nommé";
+        const r2 = document.getElementById('runner2').value || "Non nommé";
 
         document.getElementById('resultsArea').style.display = 'block';
         
@@ -366,7 +415,7 @@
             ],
             strokeColor: "#E0E0E0"
         });
-        g.maxValue = 150; g.set(val);
+        g.maxValue = 150; g.set(val > 150 ? 150 : val);
     }
 
     function addToHistory(num, r1, r2, vzt, eff, mastery, color) {
@@ -382,27 +431,59 @@
         historyBody.prepend(row);
     }
 
+    // EXPORT PDF
     async function exportToPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        const date = new Date().toLocaleDateString('fr-FR');
-        doc.setFontSize(18);
-        doc.text("Rapport de Performance Relais", 14, 20);
-        doc.setFontSize(11);
-        doc.text(`Date : ${date} | Relay Master Pro`, 14, 28);
-        doc.autoTable({ html: '#historyTable', startY: 35, headStyles: { fillColor: [79, 172, 254] }, theme: 'grid' });
-        doc.save(`relais_master_${date.replace(/\//g, '-')}.pdf`);
+        doc.setFontSize(16);
+        doc.text("Relais-Vitesse : Rapport de performance", 14, 20);
+        doc.setFontSize(10);
+        doc.text(`Généré le ${new Date().toLocaleString()}`, 14, 28);
+        doc.autoTable({ 
+            html: '#historyTable', 
+            startY: 35,
+            headStyles: { fillColor: [79, 172, 254] }
+        });
+        doc.save(`relais_vitesse_${new Date().toLocaleDateString()}.pdf`);
     }
 
-    // NOUVEL ESSAI : NE SUPPRIME PLUS LES NOMS
+    // EXPORT CSV (Excel) - Correction Robuste
+    function exportToCSV() {
+        const rows = document.querySelectorAll("#historyTable tr");
+        let csvContent = "";
+        
+        for (let i = 0; i < rows.length; i++) {
+            const cols = rows[i].querySelectorAll("td, th");
+            const rowData = Array.from(cols).map(col => {
+                // On nettoie le texte (pas de retours à la ligne, pas d'espaces inutiles)
+                let content = col.innerText.replace(/\r?\n|\r/g, " ").trim();
+                return `"${content}"`; 
+            });
+            // Utilisation du point-virgule pour Excel France
+            csvContent += rowData.join(";") + "\n";
+        }
+
+        // Création du Blob avec BOM UTF-8 pour les accents dans Excel
+        const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", `relais_vitesse_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Reset chrono
     document.getElementById('resetRunBtn').addEventListener('click', () => {
         clicks = 0; times = []; elapsed = 0;
+        clearInterval(timer);
         chronoDisp.textContent = "00.00";
         btnLabel.textContent = "DÉPART";
         runner.style.left = "0%";
         document.getElementById('resultsArea').style.display = 'none';
         document.querySelectorAll('.res-label').forEach(el => el.innerHTML = '');
-        // Les lignes pour vider les noms ont été supprimées ici pour garder les coureurs
     });
 </script>
 </body>
