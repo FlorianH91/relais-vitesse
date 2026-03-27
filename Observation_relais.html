@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Observateur Relais - Style Neumorphisme</title>
+
+  <style>
+    :root {
+      --bg-color: #e0e5ec;
+      --shadow: 9px 9px 16px rgb(163,177,198,0.6), -9px -9px 16px rgba(255,255,255, 0.5);
+      --inner-shadow: inset 6px 6px 12px #c1c9d7, inset -6px -6px 12px #ffffff;
+      --accent-green: #28a745;
+      --accent-blue: #007bff;
+      --text-dark: #2c3e50;
+      --track-red: #d35400;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-dark);
+      padding: 15px;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      background: var(--bg-color);
+      border-radius: 25px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    h2 { color: var(--accent-blue); font-weight: 600; margin-top: 0; }
+    h3 { font-size: 1.1rem; margin: 20px 0 10px 0; border-left: 4px solid var(--accent-blue); padding-left: 10px; }
+    hr { border: 0; border-top: 1px solid rgba(0,0,0,0.05); margin: 20px 0; }
+
+    .row { display: flex; gap: 15px; align-items: center; margin-bottom: 10px; }
+    .col { flex: 1; min-width: 0; }
+    label { font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #555; }
+    
+    input[type="text"], input[type="number"], select {
+      padding: 10px;
+      border-radius: 12px;
+      border: none;
+      background: var(--bg-color);
+      box-shadow: var(--inner-shadow);
+      font-size: 14px;
+      width: 100%;
+      box-sizing: border-box;
+      outline: none;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 10px 15px;
+      border-radius: 12px;
+      background: var(--bg-color);
+      border: none;
+      box-shadow: var(--shadow);
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+      color: var(--text-dark);
+    }
+    .btn:active { box-shadow: var(--inner-shadow); transform: scale(0.98); }
+    .btn.primary { background: var(--accent-blue); color: #fff; }
+    .btn.full { width: 100%; margin-top: 10px; }
+    .btn.sm { padding: 6px 10px; font-size: 12px; }
+
+    .quality-btn.selected {
+      box-shadow: var(--inner-shadow);
+      color: var(--accent-blue);
+      background: #e6eef7;
+    }
+
+    svg#track {
+      width: 100%;
+      height: 190px;
+      display: block;
+      border-radius: 20px;
+      background: var(--bg-color);
+      box-shadow: var(--inner-shadow);
+      margin: 15px 0;
+    }
+
+    .faults-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .fault-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 15px;
+      background: var(--bg-color);
+      box-shadow: var(--shadow);
+      font-size: 13px;
+    }
+    .fault-item input[type="checkbox"] { accent-color: var(--accent-blue); transform: scale(1.2); }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 15px;
+      border-radius: 15px;
+      box-shadow: var(--inner-shadow);
+      background: white;
+      padding: 5px;
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 800px; }
+    th, td { padding: 12px; text-align: center; font-size: 13px; border-bottom: 1px solid #eee; }
+    th { background: #f8f9fa; color: var(--accent-blue); }
+
+    .small-muted { font-size: 12px; color: #666; margin: 5px 0; }
+
+    @media (max-width:560px){
+      .row { flex-direction: column; align-items: stretch; }
+      .faults-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="appContainer">
+    <h2>Observateur relais – Expertise</h2>
+
+    <h3>0. Configuration des élèves ✏️</h3>
+    <div id="elevesConfig" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:12px;margin-bottom:15px"></div>
+    <div style="display:flex;gap:12px;margin-bottom:6px">
+      <button id="updateElevesBtn" class="btn sm">Mettre à jour la liste</button>
+      <button id="resetAllNames" class="btn sm">Réinitialiser noms</button>
+    </div>
+
+    <hr>
+
+    <h3>1. Participants & distances</h3>
+    <div class="row">
+      <div class="col">
+        <label>Donneur</label>
+        <select id="donneurSelect"></select>
+      </div>
+      <div class="col">
+        <label>Receveur</label>
+        <select id="receveurSelect"></select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <label>Distance Départ receveur/donneur (m)</label>
+        <input type="number" id="distDonneur" step="0.1" min="0" value="0">
+      </div>
+      <div class="col">
+        <label>Distance Départ receveur/ZT (m)</label>
+        <input type="number" id="distZT" step="0.1" min="0" value="0">
+      </div>
+    </div>
+
+    <hr>
+
+    <h3>2. Point de transmission (cliquer sur la piste)</h3>
+    <p class="small-muted">Zone ZT = 20 m (bandes blanches). 35 px/m.</p>
+
+    <svg id="track" viewBox="0 0 1000 200">
+      <rect x="20" y="40" width="960" height="120" fill="#d35400" rx="15"></rect>
+      <rect x="150" y="40" width="8" height="120" fill="#fff"></rect>
+      <rect x="850" y="40" width="8" height="120" fill="#fff"></rect>
+      
+      <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#fff"></polygon>
+        </marker>
+      </defs>
+      <line x1="400" y1="100" x2="600" y2="100" stroke="#fff" stroke-width="2" marker-end="url(#arrowhead)" opacity="0.5"></line>
+      <text x="500" y="90" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">SENS DE COURSE</text>
+    </svg>
+
+    <p id="distanceDisplay" class="small-muted" style="text-align:center; font-weight:bold;">Distance au centre de la zone : -</p>
+
+    <hr>
+
+    <h3>3. Qualité de la transmission</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <button class="btn quality-btn" data-quality="Tampon">Tampon</button>
+      <button class="btn quality-btn" data-quality="Éloignée">Éloignée</button>
+      <button class="btn quality-btn" data-quality="Fluide">Vitesse fluide</button>
+      <button class="btn quality-btn" data-quality="Vmax">Vitesse fluide Vmax</button>
+    </div>
+    <p id="qualityDisplay" class="small-muted" style="color:var(--accent-blue); font-weight:bold;">Aucune sélection</p>
+
+    <hr>
+
+    <h3>4. Fautes (optionnel)</h3>
+    <div class="faults-grid" id="faultsGrid">
+      <label class="fault-item">🖐️ <input type="checkbox" id="main"> Erreur de main</label>
+      <label class="fault-item">💪 <input type="checkbox" id="bras"> Bras tendu trop tôt</label>
+      <label class="fault-item">👁️ <input type="checkbox" id="regarde"> Regarde en arrière</label>
+      <label class="fault-item">➡️ <input type="checkbox" id="placement"> Erreur de placement</label>
+    </div>
+
+    <div style="display:flex;gap:15px;margin-top:25px">
+      <button id="enregistrerBtn" class="btn primary full" style="background: var(--accent-green);">💾 Enregistrer l'observation</button>
+      <button id="reset" class="btn full">Réinitialiser</button>
+    </div>
+
+    <hr>
+
+    <h2 style="margin-top:40px">Historique des Observations</h2>
+    <div class="table-wrap">
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th>Donneur</th>
+            <th>Receveur</th>
+            <th>Qualité</th>
+            <th>Distance (m)</th>
+            <th>Dist D/r (m)</th>
+            <th>Dist R/ZT (m)</th>
+            <th>Fautes</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:20px">
+      <button id="exportPdfBtn" class="btn sm primary">⬇️ Exporter en PDF</button>
+      <button id="clearTableBtn" class="btn sm" style="color:red">🗑️ Vider l'historique</button>
+    </div>
+
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <script>
+    // --- Initialisation des données (avec chargement LocalStorage) ---
+    let eleves = JSON.parse(localStorage.getItem('relais_eleves')) || { A: "Dupond Jean", B: "Durand Marie", C: "Lefevre Pierre", D: "Martin Sophie", E: "Petit Lucas", F: "Roux Emma" };
+
+    const ELEVES_CONFIG_DIV = document.getElementById("elevesConfig");
+    const UPDATE_ELEVES_BTN = document.getElementById("updateElevesBtn");
+    const RESET_NAMES_BTN = document.getElementById("resetAllNames");
+    const DONNEUR_SELECT = document.getElementById("donneurSelect");
+    const RECEVEUR_SELECT = document.getElementById("receveurSelect");
+    const DIST_DONNEUR_INPUT = document.getElementById("distDonneur");
+    const DIST_ZT_INPUT = document.getElementById("distZT");
+    const SVG_TRACK = document.getElementById("track");
+    const DISTANCE_DISPLAY = document.getElementById("distanceDisplay");
+    const QUALITY_BTNS = document.querySelectorAll(".quality-btn");
+    const QUALITY_DISPLAY = document.getElementById("qualityDisplay");
+    const ENREGISTRER_BTN = document.getElementById("enregistrerBtn");
+    const RESET_BTN = document.getElementById("reset");
+    const RESULTS_BODY = document.querySelector("#resultsTable tbody");
+    const EXPORT_PDF_BTN = document.getElementById("exportPdfBtn");
+    const CLEAR_TABLE_BTN = document.getElementById("clearTableBtn");
+
+    const LONGUEUR_ZT_M = 20;
+    const ZT_DEBUT_X = 150;
+    const ZT_FIN_X = 850;
+    const ZT_LONGUEUR_PX = ZT_FIN_X - ZT_DEBUT_X; 
+    const PIXELS_PAR_METRE = ZT_LONGUEUR_PX / LONGUEUR_ZT_M; 
+    const ZT_CENTRE_X = ZT_DEBUT_X + ZT_LONGUEUR_PX / 2; 
+
+    let markerX = null;
+    let markerY = null;
+    let quality = null;
+
+    // --- Fonctions de sauvegarde ---
+    function saveToLocalStorage() {
+        localStorage.setItem('relais_eleves', JSON.stringify(eleves));
+        localStorage.setItem('relais_history', RESULTS_BODY.innerHTML);
+    }
+
+    function loadHistory() {
+        const savedHistory = localStorage.getItem('relais_history');
+        if (savedHistory) RESULTS_BODY.innerHTML = savedHistory;
+    }
+
+    function renderElevesConfig(){
+      ELEVES_CONFIG_DIV.innerHTML = "";
+      Object.keys(eleves).forEach(key => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = `<label>${key} :</label><input type="text" id="eleve_${key}" value="${eleves[key]}">`;
+        ELEVES_CONFIG_DIV.appendChild(wrapper);
+      });
+    }
+
+    function updateElevesList(){
+      const newE = {};
+      let changed = false;
+      for(const key in eleves){
+        const input = document.getElementById(`eleve_${key}`);
+        const v = (input && input.value.trim()) || eleves[key];
+        if(v !== eleves[key]) changed = true;
+        newE[key] = v;
+      }
+      eleves = newE;
+      if(changed){ 
+          initSelections(); 
+          saveToLocalStorage();
+          alert("Liste mise à jour !"); 
+      }
+    }
+
+    function initSelections(){
+      DONNEUR_SELECT.innerHTML = "";
+      RECEVEUR_SELECT.innerHTML = "";
+      for(const [k,v] of Object.entries(eleves)){
+        DONNEUR_SELECT.add(new Option(`${k}: ${v}`, k));
+        RECEVEUR_SELECT.add(new Option(`${k}: ${v}`, k));
+      }
+      DONNEUR_SELECT.value = Object.keys(eleves)[0];
+      RECEVEUR_SELECT.value = Object.keys(eleves)[1];
+    }
+
+    RESET_NAMES_BTN?.addEventListener("click", ()=>{
+      eleves = { A: "Dupond Jean", B: "Durand Marie", C: "Lefevre Pierre", D: "Martin Sophie", E: "Petit Lucas", F: "Roux Emma" };
+      renderElevesConfig(); 
+      initSelections();
+      saveToLocalStorage();
+    });
+
+    UPDATE_ELEVES_BTN.addEventListener("click", updateElevesList);
+
+    function getSvgPoint(evt){
+      const pt = SVG_TRACK.createSVGPoint();
+      pt.x = evt.clientX; pt.y = evt.clientY;
+      const ctm = SVG_TRACK.getScreenCTM();
+      const svgP = pt.matrixTransform(ctm.inverse());
+      return {x: svgP.x, y: svgP.y};
+    }
+
+    SVG_TRACK.addEventListener("click", e=>{
+      const p = getSvgPoint(e);
+      markerX = p.x; markerY = p.y;
+      const dist = ((markerX - ZT_CENTRE_X) / PIXELS_PAR_METRE).toFixed(2);
+      DISTANCE_DISPLAY.textContent = `Distance au centre : ${dist} m ${markerX < ZT_DEBUT_X ? '(Avant)' : markerX > ZT_FIN_X ? '(Après)' : '(En zone)'}`;
+      drawMarker(markerX, markerY);
+    });
+
+    function drawMarker(x,y){
+      document.getElementById("transmissionMarker")?.remove();
+      if(x == null) return;
+      const ns = "http://www.w3.org/2000/svg";
+      const g = document.createElementNS(ns,"g");
+      g.setAttribute("id","transmissionMarker");
+      const l = document.createElementNS(ns,"line");
+      l.setAttribute("x1", x); l.setAttribute("y1", 40); l.setAttribute("x2", x); l.setAttribute("y2", 160);
+      l.setAttribute("stroke","yellow"); l.setAttribute("stroke-width","4"); g.appendChild(l);
+      const c = document.createElementNS(ns,"circle");
+      c.setAttribute("cx", x); c.setAttribute("cy", y || 100); c.setAttribute("r",12);
+      c.setAttribute("fill","#2c3e50"); c.setAttribute("stroke","white"); c.setAttribute("stroke-width","3"); g.appendChild(c);
+      SVG_TRACK.appendChild(g);
+    }
+
+    QUALITY_BTNS.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        QUALITY_BTNS.forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+        quality = btn.getAttribute('data-quality');
+        QUALITY_DISPLAY.textContent = btn.textContent;
+      });
+    });
+
+    ENREGISTRER_BTN.addEventListener("click", ()=>{
+      const donneurKey = DONNEUR_SELECT.value;
+      const receveurKey = RECEVEUR_SELECT.value;
+      const distDonneur = DIST_DONNEUR_INPUT.value === "" ? 0 : parseFloat(DIST_DONNEUR_INPUT.value);
+      const distZT = DIST_ZT_INPUT.value === "" ? 0 : parseFloat(DIST_ZT_INPUT.value);
+
+      if(!donneurKey || !receveurKey || markerX === null || !quality){
+        alert("Veuillez sélectionner les participants, cliquer sur la piste et choisir une qualité."); 
+        return;
+      }
+
+      const distAuCentre = ((markerX - ZT_CENTRE_X) / PIXELS_PAR_METRE).toFixed(2);
+      const newRow = RESULTS_BODY.insertRow();
+      newRow.insertCell().textContent = `${eleves[donneurKey]} (${donneurKey})`;
+      newRow.insertCell().textContent = `${eleves[receveurKey]} (${receveurKey})`;
+      newRow.insertCell().textContent = quality;
+      newRow.insertCell().textContent = `${distAuCentre} m`;
+      newRow.insertCell().textContent = `${distDonneur.toFixed(2)} m`;
+      newRow.insertCell().textContent = `${distZT.toFixed(2)} m`;
+
+      const fautes = [];
+      if(document.getElementById("main").checked) fautes.push("🖐️");
+      if(document.getElementById("bras").checked) fautes.push("💪");
+      if(document.getElementById("regarde").checked) fautes.push("👁️");
+      if(document.getElementById("placement").checked) fautes.push("➡️");
+      newRow.insertCell().textContent = fautes.join(" ") || "-";
+
+      saveToLocalStorage();
+      alert("Enregistré !");
+      resetSaisies();
+    });
+
+    function resetSaisies(){
+      markerX = null; markerY = null; quality = null;
+      DISTANCE_DISPLAY.textContent = "Distance au centre de la zone : -";
+      QUALITY_DISPLAY.textContent = "Aucune sélection";
+      QUALITY_BTNS.forEach(b=>b.classList.remove('selected'));
+      document.querySelectorAll(".faults-grid input").forEach(c=>c.checked=false);
+      document.getElementById("transmissionMarker")?.remove();
+      DIST_DONNEUR_INPUT.value = "0"; 
+      DIST_ZT_INPUT.value = "0";
+    }
+
+    CLEAR_TABLE_BTN.addEventListener('click', ()=> { 
+        if(confirm("Vider l'historique ?")) {
+            RESULTS_BODY.innerHTML = ''; 
+            saveToLocalStorage();
+        }
+    });
+
+    RESET_BTN.addEventListener("click", resetSaisies);
+
+    EXPORT_PDF_BTN.addEventListener('click', async ()=> {
+      const element = document.querySelector("#resultsTable");
+      if(element.querySelectorAll('tbody tr').length === 0) return alert("Tableau vide.");
+      const canvas = await html2canvas(element, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p', 'pt', 'a4');
+      pdf.addImage(imgData, 'PNG', 20, 20, 555, (canvas.height * 555) / canvas.width);
+      pdf.save(`relais_expertise_${new Date().getTime()}.pdf`);
+    });
+
+    // --- Initialisation au chargement ---
+    renderElevesConfig();
+    initSelections();
+    loadHistory();
+  </script>
+</body>
+</html>
